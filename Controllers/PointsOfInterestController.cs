@@ -1,4 +1,5 @@
 using CityInfoApi.Models;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CityInfoApi.Controllers
@@ -87,6 +88,65 @@ namespace CityInfoApi.Controllers
             existentPointOfInterest.Name = pointOfInterest.Name;
             existentPointOfInterest.Description = pointOfInterest.Description;
 
+            return NoContent();
+        }
+
+        [HttpPatch("{pointofinterestid}")]
+        public ActionResult PatchPointOfInterest(int cityId, int pointOfInterestId, JsonPatchDocument<PointOfInterestUpdateRequest> patchDocument)
+        {
+            var city = CitiesDataStore.Current.Cities.FirstOrDefault(c => c.Id == cityId);
+            if (city == null)
+            {
+                return NotFound();
+            }
+
+            var existentPointOfInterest = city.PointsOfInterest.FirstOrDefault(c => c.Id == pointOfInterestId);
+            if (existentPointOfInterest == null)
+            {
+                return NotFound();
+            }
+
+            var pointOfInterestToPatch = new PointOfInterestUpdateRequest()
+            {
+                Name = existentPointOfInterest.Name,
+                Description = existentPointOfInterest.Description
+            };
+
+            patchDocument.ApplyTo(pointOfInterestToPatch, ModelState);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            if (!TryValidateModel(pointOfInterestToPatch))
+            {
+                return BadRequest(ModelState);
+            }
+
+            existentPointOfInterest.Name = pointOfInterestToPatch.Name;
+            existentPointOfInterest.Description = pointOfInterestToPatch.Description;
+
+            return NoContent();
+        }
+
+        [HttpDelete("{pointofinterestid}")]
+        public ActionResult DeletePointOfInterest(int cityId, int pointOfInterestId)
+        {
+            var city = CitiesDataStore.Current.Cities.FirstOrDefault(c => c.Id == cityId);
+
+            if(city == null)
+            {
+                return NotFound();
+            }
+
+            var existentPointOfInterest = city.PointsOfInterest.FirstOrDefault(c => c.Id == pointOfInterestId);
+            if(existentPointOfInterest == null)
+            {
+                return NotFound();
+            }
+
+            city.PointsOfInterest.Remove(existentPointOfInterest);
             return NoContent();
         }
     }
